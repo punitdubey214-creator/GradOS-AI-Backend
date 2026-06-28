@@ -25,21 +25,44 @@ app.post("/ai/import", async (req, res) => {
     const { content } = req.body;
 
     const prompt = `
-Extract the graduate application.
+You are extracting graduate application information.
 
-Return ONLY JSON.
+Return ONLY valid JSON.
 
 {
- "application":{
-   "university":"",
-   "program":"",
-   "deadline":"",
-   "application_fee":"",
-   "country":""
- },
- "documents":[],
- "referees_required":0
+  "application": {
+    "university": "",
+    "program": "",
+    "deadline": "",
+    "feeRequired": "No",
+    "feeAmount": "",
+    "feeCurrency": "USD",
+    "status": "Researching",
+    "cv": "Not Started",
+    "sop": "Not Started",
+    "coverLetter": "Not Required",
+    "motivationLetter": "Not Required",
+    "referees": "Not Started",
+    "applicationForm": "Not Started",
+    "transcript": "Not Started",
+    "englishTest": "Not Started"
+  },
+  "referees_required": 0,
+  "country": "",
+  "documents": [],
+  "notes": ""
 }
+
+Rules:
+
+- Detect required documents.
+- Detect application deadline.
+- Detect university.
+- Detect program.
+- Detect number of referees.
+- If a document is required, set it to "Not Started".
+- If not required, set it to "Not Required".
+- Return ONLY JSON.
 
 Opportunity:
 
@@ -51,7 +74,12 @@ ${content}
       contents: prompt
     });
 
-    res.send(response.text);
+    const text = response.text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    res.json(JSON.parse(text));
 
   } catch(err) {
 
