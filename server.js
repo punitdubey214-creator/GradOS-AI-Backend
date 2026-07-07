@@ -55,6 +55,9 @@ Return ONLY valid JSON.
 
 Rules:
 
+- application_deadline: Must always be in DD-MM-YYYY format.
+- Example: 02-07-2026.
+- If no deadline is found, return an empty string 
 - Detect required documents.
 - Detect application deadline.
 - Detect university.
@@ -70,7 +73,7 @@ ${content}
 `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash",
       contents: prompt
     });
 
