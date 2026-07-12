@@ -137,37 +137,80 @@ app.post("/share/create", async (req, res) => {
 
     const { userName } = req.body;
 
-    // Create spreadsheet using Sheets API
+    console.log("STEP 1 - Creating spreadsheet");
+
     const spreadsheet = await sheets.spreadsheets.create({
-
       requestBody: {
-
         properties: {
-
           title: `${userName || "GradOS"} - Applications`
-
         }
-
       }
-
     });
+
+    console.log("✅ STEP 1 Complete");
 
     const spreadsheetId = spreadsheet.data.spreadsheetId;
 
-    // Move spreadsheet into your GradOS folder
+    console.log("STEP 2 - Moving into folder");
+
     await drive.files.update({
-
       fileId: spreadsheetId,
-
       addParents: process.env.GOOGLE_DRIVE_FOLDER_ID,
-
       removeParents: "root",
-
       fields: "id, parents"
-
     });
 
-    // Add header row
+    console.log("✅ STEP 2 Complete");
+
+    console.log("STEP 3 - Writing headers");
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: "Sheet1!A1:D1",
+      valueInputOption: "RAW",
+      requestBody: {
+        values: [[
+          "University",
+          "Program",
+          "Deadline",
+          "Status"
+        ]]
+      }
+    });
+
+    console.log("✅ STEP 3 Complete");
+
+    console.log("STEP 4 - Making public");
+
+    await drive.permissions.create({
+      fileId: spreadsheetId,
+      requestBody: {
+        type: "anyone",
+        role: "reader"
+      }
+    });
+
+    console.log("✅ STEP 4 Complete");
+
+    res.json({
+      success: true,
+      sheetId: spreadsheetId,
+      sheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
+    });
+
+  } catch (err) {
+
+    console.error("SHARE ERROR:");
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+
+  }
+
+});
     await sheets.spreadsheets.values.update({
 
       spreadsheetId,
