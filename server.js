@@ -131,86 +131,21 @@ ${content}
    CREATE SHARE SHEET
 =========================== */
 
-app.post("/share/create", async (req, res) => {
 
-  try {
+catch (err) {
 
-    const { userName } = req.body;
+    console.log("========== GOOGLE RESPONSE ==========");
 
-    console.log("STEP 1 - Creating spreadsheet");
-
-    const spreadsheet = await sheets.spreadsheets.create({
-      requestBody: {
-        properties: {
-          title: `${userName || "GradOS"} - Applications`
-        }
-      }
+    console.dir(err.response?.data, {
+        depth: null
     });
-
-    console.log("✅ STEP 1 Complete");
-
-    const spreadsheetId = spreadsheet.data.spreadsheetId;
-
-    console.log("STEP 2 - Moving into folder");
-
-    await drive.files.update({
-      fileId: spreadsheetId,
-      addParents: process.env.GOOGLE_DRIVE_FOLDER_ID,
-      removeParents: "root",
-      fields: "id, parents"
-    });
-
-    console.log("✅ STEP 2 Complete");
-
-    console.log("STEP 3 - Writing headers");
-
-    await sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range: "Sheet1!A1:D1",
-      valueInputOption: "RAW",
-      requestBody: {
-        values: [[
-          "University",
-          "Program",
-          "Deadline",
-          "Status"
-        ]]
-      }
-    });
-
-    console.log("✅ STEP 3 Complete");
-
-    console.log("STEP 4 - Making public");
-
-    await drive.permissions.create({
-      fileId: spreadsheetId,
-      requestBody: {
-        type: "anyone",
-        role: "reader"
-      }
-    });
-
-    console.log("✅ STEP 4 Complete");
-
-    res.json({
-      success: true,
-      sheetId: spreadsheetId,
-      sheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
-    });
-
-  } catch (err) {
-
-    console.error("SHARE ERROR:");
-    console.error(err);
 
     res.status(500).json({
-      success: false,
-      error: err.message
+        success: false,
+        error: err.response?.data || err.message
     });
 
-  }
-
-});
+}
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
