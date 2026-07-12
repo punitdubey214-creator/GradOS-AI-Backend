@@ -131,21 +131,31 @@ ${content}
    CREATE SHARE SHEET
 =========================== */
 
+app.post("/share/create", async (req, res) => {
 
-catch (err) {
+    try {
 
-    console.log("========== GOOGLE RESPONSE ==========");
+        // create sheet
+        // move to folder
+        // write headers
+        // make public
 
-    console.dir(err.response?.data, {
-        depth: null
-    });
+    } catch (err) {
 
-    res.status(500).json({
-        success: false,
-        error: err.response?.data || err.message
-    });
+        console.log("========== GOOGLE RESPONSE ==========");
 
-}
+        console.dir(err.response?.data, {
+            depth: null
+        });
+
+        res.status(500).json({
+            success: false,
+            error: err.response?.data || err.message
+        });
+
+    }
+
+});
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
