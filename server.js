@@ -130,24 +130,37 @@ app.post("/share/create", async (req, res) => {
 
     const { userName } = req.body;
 
-    const file = await drive.files.create({
+    // Create spreadsheet using Sheets API
+    const spreadsheet = await sheets.spreadsheets.create({
 
       requestBody: {
 
-        name: `${userName || "GradOS"} - Applications`,
+        properties: {
 
-        mimeType: "application/vnd.google-apps.spreadsheet",
+          title: `${userName || "GradOS"} - Applications`
 
-        parents: [
-          process.env.GOOGLE_DRIVE_FOLDER_ID
-        ]
+        }
 
       }
 
     });
 
-    const spreadsheetId = file.data.id;
+    const spreadsheetId = spreadsheet.data.spreadsheetId;
 
+    // Move spreadsheet into your GradOS folder
+    await drive.files.update({
+
+      fileId: spreadsheetId,
+
+      addParents: process.env.GOOGLE_DRIVE_FOLDER_ID,
+
+      removeParents: "root",
+
+      fields: "id, parents"
+
+    });
+
+    // Add header row
     await sheets.spreadsheets.values.update({
 
       spreadsheetId,
@@ -174,23 +187,20 @@ app.post("/share/create", async (req, res) => {
 
     });
 
+    // Make public
     await drive.permissions.create({
 
       fileId: spreadsheetId,
 
       requestBody: {
 
-        role: "reader",
+        type: "anyone",
 
-        type: "anyone"
+        role: "reader"
 
       }
 
     });
-
-    const sheetUrl =
-
-      `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
 
     res.json({
 
@@ -198,7 +208,7 @@ app.post("/share/create", async (req, res) => {
 
       sheetId: spreadsheetId,
 
-      sheetUrl
+      sheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
 
     });
 
@@ -218,9 +228,4 @@ app.post("/share/create", async (req, res) => {
 
   }
 
-});
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
 });
