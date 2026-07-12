@@ -31,7 +31,14 @@ const drive = google.drive({
   version: "v3",
   auth
 });
+const authClient = await auth.getClient();
 
+const about = await drive.about.get({
+  fields: "user"
+});
+
+console.log("Logged in as:");
+console.log(about.data.user);
 const app = express();
 
 app.use(cors());
