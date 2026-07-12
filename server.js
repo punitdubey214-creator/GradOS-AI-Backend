@@ -6,59 +6,84 @@ import { google } from "googleapis";
 
 dotenv.config();
 
-/* ===========================
-   GOOGLE SHEETS
-=========================== */
+/* ==========================================================
+   GOOGLE AUTH
+========================================================== */
 
-const serviceAccount = JSON.parse(
-  process.env.GOOGLE_SERVICE_ACCOUNT
-);
+if (!process.env.GOOGLE_SERVICE_ACCOUNT) {
+    throw new Error("GOOGLE_SERVICE_ACCOUNT not found.");
+}
+
+const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
 
 const auth = new google.auth.GoogleAuth({
-  credentials: serviceAccount,
-  scopes: [
-    "https://www.googleapis.com/auth/drive",
-    "https://www.googleapis.com/auth/spreadsheets"
-  ]
+    credentials: serviceAccount,
+    scopes: [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
 });
 
 const sheets = google.sheets({
-  version: "v4",
-  auth
+    version: "v4",
+    auth
 });
 
 const drive = google.drive({
-  version: "v3",
-  auth
-});
-const authClient = await auth.getClient();
-
-const about = await drive.about.get({
-  fields: "user"
+    version: "v3",
+    auth
 });
 
-console.log("Logged in as:");
-console.log(about.data.user);
+try {
+
+    const about = await drive.about.get({
+        fields: "user"
+    });
+
+    console.log("Logged in as:");
+    console.log(about.data.user);
+
+} catch (err) {
+
+    console.error("Google authentication failed");
+    console.error(err);
+
+}
+
+/* ==========================================================
+   EXPRESS
+========================================================== */
+
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
+/* ==========================================================
+   GEMINI
+========================================================== */
+
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY
+    apiKey: process.env.GEMINI_API_KEY
 });
 
 app.get("/", (req, res) => {
-  res.send("GradOS AI Backend Running 🚀");
+
+    res.send("GradOS AI Backend Running 🚀");
+
 });
+
+/* ==========================================================
+   SMART IMPORT
+========================================================== */
 
 app.post("/ai/import", async (req, res) => {
 
-  try {
+    try {
 
-    const { content } = req.body;
+        const { content } = req.body;
 
-    const prompt = `
+        const prompt = `
 You are extracting graduate application information.
 
 Return ONLY valid JSON.
@@ -89,16 +114,8 @@ Return ONLY valid JSON.
 
 Rules:
 
-- application_deadline: Must always be in DD-MM-YYYY format.
-- Example: 02-07-2026.
-- If no deadline is found, return an empty string 
-- Detect required documents.
-- Detect application deadline.
-- Detect university.
-- Detect program.
-- Detect number of referees.
-- If a document is required, set it to "Not Started".
-- If not required, set it to "Not Required".
+- Deadline MUST be DD-MM-YYYY.
+- If unavailable return "".
 - Return ONLY JSON.
 
 Opportunity:
@@ -106,58 +123,184 @@ Opportunity:
 ${content}
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: prompt
-    });
+        const response = await ai.models.generateContent({
 
-    const text = response.text
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
+            model: "gemini-2.0-flash",
 
-    res.json(JSON.parse(text));
+            contents: prompt
 
-  } catch(err) {
+        });
 
-    console.error(err);
+        const text = response.text
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
 
-    res.status(500).send(err.message);
+        res.json(JSON.parse(text));
 
-  }
+    }
+
+    catch (err) {
+
+        console.error(err);
+
+        res.status(500).send(err.message);
+
+    }
 
 });
-/* ===========================
+
+/* ==========================================================
    CREATE SHARE SHEET
-=========================== */
+========================================================== */
 
 app.post("/share/create", async (req, res) => {
 
     try {
 
-        // create sheet
-        // move to folder
-        // write headers
-        // make public
+        const { userName } = req.body;
 
-    } catch (err) {
+        console.log("STEP 1 - Creating Spreadsheet");
 
-        console.log("========== GOOGLE RESPONSE ==========");
+        const spreadsheet = await sheets.spreadsheets.create({
 
-        console.dir(err.response?.data, {
-            depth: null
+            requestBody: {
+
+                properties: {
+
+                    title: `${userName || "GradOS"} - Applications`
+
+                }
+
+            }
+
         });
 
+        console.log("STEP 1 COMPLETE");
+
+        const spreadsheetId = spreadsheet.data.spreadsheetId;
+
+        console.log("Spreadsheet ID:", spreadsheetId);
+
+        console.log("STEP 2 - Move to Folder");
+
+        await drive.files.update({
+
+            fileId: spreadsheetId,
+
+            addParents: process.env.GOOGLE_DRIVE_FOLDER_ID,
+
+            removeParents: "root",
+
+            fields: "id,parents"
+
+        });
+
+        console.log("STEP 2 COMPLETE");
+
+        console.log("STEP 3 - Write Header");
+
+        await sheets.spreadsheets.values.update({
+
+            spreadsheetId,
+
+            range: "Sheet1!A1:D1",
+
+            valueInputOption: "RAW",
+
+            requestBody: {
+
+                values: [[
+
+                    "University",
+
+                    "Program",
+
+                    "Deadline",
+
+                    "Status"
+
+                ]]
+
+            }
+
+        });
+
+        console.log("STEP 3 COMPLETE");
+
+        console.log("STEP 4 - Make Public");
+
+        await drive.permissions.create({
+
+            fileId: spreadsheetId,
+
+            requestBody: {
+
+                type: "anyone",
+
+                role: "reader"
+
+            }
+
+        });
+
+        console.log("STEP 4 COMPLETE");
+
+        res.json({
+
+            success: true,
+
+            sheetId: spreadsheetId,
+
+            sheetUrl:
+                `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
+
+        });
+
+    }
+
+    catch (err) {
+
+        console.log("======================================");
+        console.log("GOOGLE API RESPONSE");
+        console.log("======================================");
+
+        if (err.response?.data) {
+
+            console.dir(err.response.data, {
+
+                depth: null
+
+            });
+
+        }
+
+        else {
+
+            console.error(err);
+
+        }
+
         res.status(500).json({
+
             success: false,
+
             error: err.response?.data || err.message
+
         });
 
     }
 
 });
+
+/* ==========================================================
+   START SERVER
+========================================================== */
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+
+    console.log(`🚀 Server running on port ${PORT}`);
+
 });
