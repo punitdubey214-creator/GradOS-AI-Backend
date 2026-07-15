@@ -443,21 +443,23 @@ app.get("/share/create", async (req, res) => {
 
 });
 /* ==========================================================
-   SYNC APPLICATIONS TO GOOGLE SHEETS
+   SYNC APPLICATIONS
 ========================================================== */
 
-app.post("/share/sync", async (req, res) => {
+app.get("/share/sync", async (req, res) => {
 
     try {
 
-        const { uid, applications } = req.body;
+        const uid = req.query.uid;
+
+        const applications = JSON.parse(req.query.applications);
 
         if (!uid) {
 
             return res.status(400).json({
 
                 success: false,
-                error: "Missing Firebase UID"
+                error: "Missing UID"
 
             });
 
@@ -491,8 +493,6 @@ app.post("/share/sync", async (req, res) => {
 
         });
 
-        // Build rows
-
         const values = [
 
             [
@@ -511,18 +511,13 @@ app.post("/share/sync", async (req, res) => {
             values.push([
 
                 app.university || "",
-
                 app.program || "",
-
                 app.deadline || "",
-
                 app.status || ""
 
             ]);
 
         }
-
-        // Remove old rows
 
         await sheets.spreadsheets.values.clear({
 
@@ -531,8 +526,6 @@ app.post("/share/sync", async (req, res) => {
             range: "Sheet1!A:D"
 
         });
-
-        // Rewrite entire sheet
 
         await sheets.spreadsheets.values.update({
 
