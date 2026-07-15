@@ -163,16 +163,23 @@ app.get("/oauth2callback", async (req, res) => {
         console.log("Google Tokens:");
         console.dir(tokens, { depth: null });
 
+        const updateData = {
+
+            accessToken: tokens.access_token || "",
+
+            connectedAt: new Date()
+
+        };
+
+        if (tokens.refresh_token) {
+
+            updateData.refreshToken = tokens.refresh_token;
+
+        }
+
         await db.collection("sheets")
         .doc(uid)
-        .set({
-
-            spreadsheetId,
-
-            spreadsheetUrl:
-                `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
-
-        }, {
+        .set(updateData, {
 
             merge: true
 
@@ -329,17 +336,7 @@ app.get("/share/status", async (req, res) => {
         }
 
         const data = doc.data();
-                if (!data.spreadsheetId) {
 
-            return res.status(400).json({
-
-                success: false,
-
-                error: "Spreadsheet not created yet."
-
-            });
-
-        }
 
         res.json({
 
@@ -382,19 +379,24 @@ app.get("/share/create", async (req, res) => {
             });
 
         }
-        await db.collection("sheets")
+
+        const doc = await db.collection("sheets")
         .doc(uid)
-        .set({
+        .get();
 
-            spreadsheetId: spreadsheetId,
+        if (!doc.exists) {
 
-            spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
+            return res.status(404).json({
 
-        }, {
+                success: false,
 
-            merge: true
+                error: "Google account not connected."
 
-        });
+            });
+
+        }
+
+        const data = doc.data();
 
         const data = doc.data();
 
@@ -499,16 +501,20 @@ app.get("/share/create", async (req, res) => {
 
         await db.collection("sheets")
         .doc(uid)
-        .update({
+        .set({
 
             spreadsheetId,
 
             spreadsheetUrl:
                 `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
 
+        }, {
+
+            merge: true
+
         });
+
         console.log("Firestore updated successfully.");
-        // Return URL
 
         res.json({
 
