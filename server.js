@@ -439,6 +439,7 @@ app.get("/share/create", async (req, res) => {
         });
 
         const spreadsheetId = spreadsheet.data.spreadsheetId;
+        console.log("Spreadsheet created:", spreadsheetId);
 
         // Write headers
 
@@ -482,6 +483,7 @@ app.get("/share/create", async (req, res) => {
         });
 
         // Save sheet info in Firebase
+        console.log("Saving spreadsheet to Firestore...");
 
         await db.collection("sheets")
         .doc(uid)
@@ -493,7 +495,7 @@ app.get("/share/create", async (req, res) => {
                 `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
 
         });
-
+        console.log("Firestore updated successfully.");
         // Return URL
 
         res.json({
