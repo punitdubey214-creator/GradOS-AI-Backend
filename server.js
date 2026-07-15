@@ -323,12 +323,88 @@ app.post("/share/create", async (req, res) => {
             auth: oauth2Client
 
         });
+        // Create spreadsheet
+
+        const spreadsheet = await sheets.spreadsheets.create({
+
+            requestBody: {
+
+                properties: {
+
+                    title: "GradOS Applications"
+
+                }
+
+            }
+
+        });
+
+        const spreadsheetId = spreadsheet.data.spreadsheetId;
+
+        // Write headers
+
+        await sheets.spreadsheets.values.update({
+
+            spreadsheetId,
+
+            range: "Sheet1!A1:D1",
+
+            valueInputOption: "RAW",
+
+            requestBody: {
+
+                values: [[
+
+                    "University",
+                    "Program",
+                    "Deadline",
+                    "Status"
+
+                ]]
+
+            }
+
+        });
+
+        // Make sheet public
+
+        await drive.permissions.create({
+
+            fileId: spreadsheetId,
+
+            requestBody: {
+
+                type: "anyone",
+
+                role: "reader"
+
+            }
+
+        });
+
+        // Save sheet info in Firebase
+
+        await db.collection("sheets")
+        .doc(uid)
+        .update({
+
+            spreadsheetId,
+
+            spreadsheetUrl:
+                `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
+
+        });
+
+        // Return URL
 
         res.json({
 
             success: true,
 
-            message: "Google authentication loaded successfully."
+            spreadsheetId,
+
+            spreadsheetUrl:
+                `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
 
         });
 
