@@ -3,8 +3,28 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import { google } from "googleapis";
+import { readFileSync } from "fs";
+import { initializeApp, cert } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
 dotenv.config();
+/* ==========================================================
+   FIREBASE ADMIN
+========================================================== */
+
+const serviceAccount = JSON.parse(
+    readFileSync("./firebase/firebase-admin.json", "utf8")
+);
+
+initializeApp({
+    credential: cert(serviceAccount)
+});
+
+const db = getFirestore();
+
+console.log("✅ Firebase Connected");
+
+console.log("✅ Firebase Connected");
 console.log("CLIENT ID =", process.env.GOOGLE_CLIENT_ID);
 console.log("CLIENT SECRET =", process.env.GOOGLE_CLIENT_SECRET ? "FOUND" : "MISSING");
 console.log("REDIRECT =", process.env.GOOGLE_REDIRECT_URI);
@@ -52,8 +72,15 @@ app.get("/", (req, res) => {
 
 app.get("/google/login", (req, res) => {
 
+    const uid = req.query.uid;
 
-    console.log("CLIENT ID:", process.env.GOOGLE_CLIENT_ID);
+    if (!uid) {
+
+        return res.status(400).send("Missing Firebase UID");
+
+    }
+
+    console.log("Firebase UID:", uid);
 
     const url = oauth2Client.generateAuthUrl({
 
@@ -63,7 +90,9 @@ app.get("/google/login", (req, res) => {
 
         scope: [
             "https://www.googleapis.com/auth/drive.file"
-        ]
+        ],
+
+        state: uid
 
     });
 
@@ -119,36 +148,54 @@ app.get("/oauth2callback", async (req, res) => {
 
     try {
 
-        console.log("CODE:");
-        console.log(req.query.code);
+        const uid = req.query.state;
 
-        console.log("REDIRECT:");
-        console.log(process.env.GOOGLE_REDIRECT_URI);
+        console.log("Firebase UID:", uid);
 
-        console.log("CLIENT:");
-        console.log(process.env.GOOGLE_CLIENT_ID);
+        const { tokens } = await oauth2Client.getToken({
 
-        const result = await oauth2Client.getToken({
             code: req.query.code,
+
             redirect_uri: process.env.GOOGLE_REDIRECT_URI
+
         });
 
-        console.dir(result, { depth: null });
+        console.log("Google Tokens:");
+        console.dir(tokens, { depth: null });
 
-        res.send("SUCCESS");
+        await db.collection("sheets")
+            .doc(uid)
+            .set({
 
-    } catch (err) {
+                accessToken: tokens.access_token || "",
 
-        console.log("FULL ERROR");
-        console.dir(err, { depth: null });
+                refreshToken: tokens.refresh_token || "",
 
-        res.json(err.response?.data || err);
+                connectedAt: new Date()
+
+            });
+
+        console.log("Tokens saved.");
+
+        res.send("Google Drive Connected Successfully!");
+
+    }
+
+    catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+
+            success: false,
+
+            error: err.message
+
+        });
 
     }
 
 });
-console.log(oauth2Client._clientId);
-console.log(oauth2Client.redirectUri);
 /* ==========================================================
    SMART IMPORT
 ========================================================== */
