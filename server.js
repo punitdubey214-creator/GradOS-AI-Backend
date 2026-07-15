@@ -177,8 +177,7 @@ app.get("/oauth2callback", async (req, res) => {
 
         console.log("Tokens saved.");
 
-        res.send("Google Drive Connected Successfully!");
-
+        res.redirect("http://localhost/share.html");
     }
 
     catch (err) {
@@ -275,7 +274,72 @@ ${content}
     }
 
 });
+/* ==========================================================
+   SHARE STATUS
+========================================================== */
 
+app.get("/share/status", async (req, res) => {
+
+    try {
+
+        const uid = req.query.uid;
+
+        if (!uid) {
+
+            return res.status(400).json({
+
+                connected: false,
+
+                error: "Missing UID"
+
+            });
+
+        }
+
+        const doc = await db
+            .collection("sheets")
+            .doc(uid)
+            .get();
+
+        if (!doc.exists) {
+
+            return res.json({
+
+                connected: false
+
+            });
+
+        }
+
+        const data = doc.data();
+
+        res.json({
+
+            connected: !!data.refreshToken,
+
+            spreadsheet: !!data.spreadsheetId,
+
+            spreadsheetUrl: data.spreadsheetUrl || ""
+
+        });
+
+    }
+
+    catch(err){
+
+        console.error(err);
+
+        res.status(500).json({
+
+            connected:false,
+
+            error:err.message
+
+        });
+
+    }
+
+});
 app.get("/share/create", async (req, res) => {
 
     try {
