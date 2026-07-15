@@ -164,20 +164,19 @@ app.get("/oauth2callback", async (req, res) => {
         console.dir(tokens, { depth: null });
 
         await db.collection("sheets")
-            .doc(uid)
-            .set({
+        .doc(uid)
+        .set({
 
-                accessToken: tokens.access_token || "",
+            spreadsheetId,
 
-                refreshToken: tokens.refresh_token || "",
+            spreadsheetUrl:
+                `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
 
-                connectedAt: new Date()
+        }, {
 
-            }, {
+            merge: true
 
-                merge: true
-
-            });
+        });
 
         console.log("Tokens saved.");
 
@@ -330,6 +329,17 @@ app.get("/share/status", async (req, res) => {
         }
 
         const data = doc.data();
+                if (!data.spreadsheetId) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                error: "Spreadsheet not created yet."
+
+            });
+
+        }
 
         res.json({
 
