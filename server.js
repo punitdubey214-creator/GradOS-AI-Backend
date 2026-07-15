@@ -5,6 +5,9 @@ import { GoogleGenAI } from "@google/genai";
 import { google } from "googleapis";
 
 dotenv.config();
+console.log("CLIENT ID =", process.env.GOOGLE_CLIENT_ID);
+console.log("CLIENT SECRET =", process.env.GOOGLE_CLIENT_SECRET ? "FOUND" : "MISSING");
+console.log("REDIRECT =", process.env.GOOGLE_REDIRECT_URI);
 
 /* ==========================================================
    GOOGLE OAUTH
@@ -49,6 +52,9 @@ app.get("/", (req, res) => {
 
 app.get("/google/login", (req, res) => {
 
+
+    console.log("CLIENT ID:", process.env.GOOGLE_CLIENT_ID);
+
     const url = oauth2Client.generateAuthUrl({
 
         access_type: "offline",
@@ -56,12 +62,13 @@ app.get("/google/login", (req, res) => {
         prompt: "consent",
 
         scope: [
-
             "https://www.googleapis.com/auth/drive.file"
-
         ]
 
     });
+
+    console.log("Generated URL:");
+    console.log(url);
 
     res.redirect(url);
 
