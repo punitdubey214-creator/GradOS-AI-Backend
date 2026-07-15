@@ -14,7 +14,9 @@ if (!process.env.GOOGLE_SERVICE_ACCOUNT) {
     throw new Error("GOOGLE_SERVICE_ACCOUNT not found.");
 }
 
-const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+const serviceAccount = JSON.parse(
+    process.env.GOOGLE_SERVICE_ACCOUNT
+);
 
 const auth = new google.auth.GoogleAuth({
     credentials: serviceAccount,
@@ -144,7 +146,10 @@ ${content}
 
         console.error(err);
 
-        res.status(500).send(err.message);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
 
     }
 
@@ -178,17 +183,19 @@ app.post("/share/create", async (req, res) => {
 
         console.log("STEP 1 COMPLETE");
 
-        const spreadsheetId = spreadsheet.data.spreadsheetId;
+        const spreadsheetId =
+            spreadsheet.data.spreadsheetId;
 
         console.log("Spreadsheet ID:", spreadsheetId);
 
-        console.log("STEP 2 - Move to Folder");
+        console.log("STEP 2 - Moving Spreadsheet");
 
         await drive.files.update({
 
             fileId: spreadsheetId,
 
-            addParents: process.env.GOOGLE_DRIVE_FOLDER_ID,
+            addParents:
+                process.env.GOOGLE_DRIVE_FOLDER_ID,
 
             removeParents: "root",
 
@@ -198,7 +205,7 @@ app.post("/share/create", async (req, res) => {
 
         console.log("STEP 2 COMPLETE");
 
-        console.log("STEP 3 - Write Header");
+        console.log("STEP 3 - Writing Headers");
 
         await sheets.spreadsheets.values.update({
 
@@ -228,7 +235,7 @@ app.post("/share/create", async (req, res) => {
 
         console.log("STEP 3 COMPLETE");
 
-        console.log("STEP 4 - Make Public");
+        console.log("STEP 4 - Public Permission");
 
         await drive.permissions.create({
 
@@ -261,21 +268,25 @@ app.post("/share/create", async (req, res) => {
 
     catch (err) {
 
-        console.log("======================================");
-        console.log("GOOGLE API RESPONSE");
-        console.log("======================================");
+        console.log("=================================");
+        console.log("GOOGLE FULL ERROR");
+        console.log("=================================");
 
-        if (err.response?.data) {
+        console.log("Status:", err.code);
+        console.log("Message:", err.message);
 
-            console.dir(err.response.data, {
+        if (err.response) {
 
-                depth: null
+            console.log("Google Response:");
 
-            });
+            console.dir(
+                err.response.data,
+                {
+                    depth: null
+                }
+            );
 
-        }
-
-        else {
+        } else {
 
             console.error(err);
 
@@ -285,7 +296,7 @@ app.post("/share/create", async (req, res) => {
 
             success: false,
 
-            error: err.response?.data || err.message
+            error: err.message
 
         });
 
