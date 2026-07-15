@@ -276,24 +276,79 @@ ${content}
 
 });
 
-/* ==========================================================
-   CREATE SHARE SHEET
-========================================================== */
-        /* ==========================================================
-        CREATE SHARE SHEET
-        ========================================================== */
+app.post("/share/create", async (req, res) => {
 
-        app.post("/share/create", (req, res) => {
+    try {
 
-            res.json({
+        const { uid } = req.body;
 
-                success: true,
+        if (!uid) {
 
-                message: "OAuth connected successfully. Sheet creation comes next."
-
+            return res.status(400).json({
+                success: false,
+                error: "Missing Firebase UID"
             });
 
+        }
+
+        const doc = await db.collection("sheets").doc(uid).get();
+
+        if (!doc.exists) {
+
+            return res.status(404).json({
+                success: false,
+                error: "Google account not connected."
+            });
+
+        }
+
+        const data = doc.data();
+
+        oauth2Client.setCredentials({
+
+            refresh_token: data.refreshToken
+
         });
+
+        const drive = google.drive({
+
+            version: "v3",
+            auth: oauth2Client
+
+        });
+
+        const sheets = google.sheets({
+
+            version: "v4",
+            auth: oauth2Client
+
+        });
+
+        res.json({
+
+            success: true,
+
+            message: "Google authentication loaded successfully."
+
+        });
+
+    }
+
+    catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+
+            success: false,
+
+            error: err.message
+
+        });
+
+    }
+
+});
 
         
 
