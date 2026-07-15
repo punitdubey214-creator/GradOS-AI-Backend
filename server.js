@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import { google } from "googleapis";
-import { readFileSync } from "fs";
+
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
@@ -13,7 +13,7 @@ dotenv.config();
 ========================================================== */
 
 const serviceAccount = JSON.parse(
-    readFileSync("./firebase/firebase-admin.json", "utf8")
+    process.env.FIREBASE_ADMIN
 );
 
 initializeApp({
