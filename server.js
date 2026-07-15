@@ -77,23 +77,25 @@ app.get("/oauth2callback", async (req, res) => {
 
         const { code } = req.query;
 
-        const { tokens } =
-            await oauth2Client.getToken(code);
+        console.log("Received code:", code);
+
+        const { tokens } = await oauth2Client.getToken(code);
 
         oauth2Client.setCredentials(tokens);
 
         console.log("================================");
         console.log("GOOGLE TOKENS");
-        console.log(tokens);
+        console.dir(tokens, { depth: null });
         console.log("================================");
 
-        res.send("OAuth Success!");
+        res.send("OAuth Success");
 
     }
 
     catch (err) {
 
-        console.error(err);
+        console.log("========== GOOGLE OAUTH ERROR ==========");
+        console.dir(err, { depth: null });
 
         res.status(500).send(err.message);
 
