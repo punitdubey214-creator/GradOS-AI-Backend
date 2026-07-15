@@ -382,17 +382,19 @@ app.get("/share/create", async (req, res) => {
             });
 
         }
+        await db.collection("sheets")
+        .doc(uid)
+        .set({
 
-        const doc = await db.collection("sheets").doc(uid).get();
+            spreadsheetId: spreadsheetId,
 
-        if (!doc.exists) {
+            spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
 
-            return res.status(404).json({
-                success: false,
-                error: "Google account not connected."
-            });
+        }, {
 
-        }
+            merge: true
+
+        });
 
         const data = doc.data();
 
