@@ -309,6 +309,23 @@ app.get("/share/create", async (req, res) => {
             refresh_token: data.refreshToken
 
         });
+        // User already has a spreadsheet
+
+        if (data.spreadsheetId) {
+
+            return res.json({
+
+                success: true,
+
+                alreadyExists: true,
+
+                spreadsheetId: data.spreadsheetId,
+
+                spreadsheetUrl: data.spreadsheetUrl
+
+            });
+
+        }
 
         const drive = google.drive({
 
@@ -425,30 +442,135 @@ app.get("/share/create", async (req, res) => {
     }
 
 });
-app.get("/share/test", async (req, res) => {
+/* ==========================================================
+   SYNC APPLICATIONS TO GOOGLE SHEETS
+========================================================== */
+
+app.post("/share/sync", async (req, res) => {
 
     try {
 
-        const uid = req.query.uid;
+        const { uid, applications } = req.body;
 
-        const response = await fetch(
-            `http://localhost:${PORT}/share/create`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ uid })
+        if (!uid) {
+
+            return res.status(400).json({
+
+                success: false,
+                error: "Missing Firebase UID"
+
+            });
+
+        }
+
+        const doc = await db.collection("sheets").doc(uid).get();
+
+        if (!doc.exists) {
+
+            return res.status(404).json({
+
+                success: false,
+                error: "Google account not connected."
+
+            });
+
+        }
+
+        const data = doc.data();
+
+        oauth2Client.setCredentials({
+
+            refresh_token: data.refreshToken
+
+        });
+
+        const sheets = google.sheets({
+
+            version: "v4",
+            auth: oauth2Client
+
+        });
+
+        // Build rows
+
+        const values = [
+
+            [
+
+                "University",
+                "Program",
+                "Deadline",
+                "Status"
+
+            ]
+
+        ];
+
+        for (const app of applications) {
+
+            values.push([
+
+                app.university || "",
+
+                app.program || "",
+
+                app.deadline || "",
+
+                app.status || ""
+
+            ]);
+
+        }
+
+        // Remove old rows
+
+        await sheets.spreadsheets.values.clear({
+
+            spreadsheetId: data.spreadsheetId,
+
+            range: "Sheet1!A:D"
+
+        });
+
+        // Rewrite entire sheet
+
+        await sheets.spreadsheets.values.update({
+
+            spreadsheetId: data.spreadsheetId,
+
+            range: "Sheet1!A1",
+
+            valueInputOption: "RAW",
+
+            requestBody: {
+
+                values
+
             }
-        );
 
-        const data = await response.json();
+        });
 
-        res.json(data);
+        res.json({
 
-    } catch (err) {
+            success: true,
 
-        res.status(500).json(err);
+            rows: applications.length
+
+        });
+
+    }
+
+    catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+
+            success: false,
+
+            error: err.message
+
+        });
 
     }
 
