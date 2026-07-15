@@ -173,6 +173,10 @@ app.get("/oauth2callback", async (req, res) => {
 
                 connectedAt: new Date()
 
+            }, {
+
+                merge: true
+
             });
 
         console.log("Tokens saved.");
