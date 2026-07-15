@@ -1,0 +1,69 @@
+import express from "express";
+import dotenv from "dotenv";
+import { google } from "googleapis";
+
+dotenv.config();
+
+const app = express();
+
+const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+);
+
+app.get("/", (req, res) => {
+    res.send("OAuth Test Server Running");
+});
+
+app.get("/login", (req, res) => {
+
+    const url = oauth2Client.generateAuthUrl({
+
+        access_type: "offline",
+
+        prompt: "consent",
+
+        scope: [
+            "https://www.googleapis.com/auth/drive.file"
+        ]
+
+    });
+
+    console.log(url);
+
+    res.redirect(url);
+
+});
+
+app.get("/oauth2callback", async (req, res) => {
+
+    try {
+
+        const { code } = req.query;
+
+        const { tokens } =
+            await oauth2Client.getToken(code);
+
+        console.log("========== TOKENS ==========");
+        console.log(tokens);
+
+        res.send("SUCCESS! Check terminal.");
+
+    }
+
+    catch(err){
+
+        console.error(err);
+
+        res.send(err.message);
+
+    }
+
+});
+
+app.listen(3000, () => {
+
+    console.log("Running on http://localhost:3000");
+
+});

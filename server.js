@@ -7,50 +7,18 @@ import { google } from "googleapis";
 dotenv.config();
 
 /* ==========================================================
-   GOOGLE AUTH
+   GOOGLE OAUTH
 ========================================================== */
 
-if (!process.env.GOOGLE_SERVICE_ACCOUNT) {
-    throw new Error("GOOGLE_SERVICE_ACCOUNT not found.");
-}
+const oauth2Client = new google.auth.OAuth2(
 
-const serviceAccount = JSON.parse(
-    process.env.GOOGLE_SERVICE_ACCOUNT
+    process.env.GOOGLE_CLIENT_ID,
+
+    process.env.GOOGLE_CLIENT_SECRET,
+
+    process.env.GOOGLE_REDIRECT_URI
+
 );
-
-const auth = new google.auth.GoogleAuth({
-    credentials: serviceAccount,
-    scopes: [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
-    ]
-});
-
-const sheets = google.sheets({
-    version: "v4",
-    auth
-});
-
-const drive = google.drive({
-    version: "v3",
-    auth
-});
-
-try {
-
-    const about = await drive.about.get({
-        fields: "user"
-    });
-
-    console.log("Logged in as:");
-    console.log(about.data.user);
-
-} catch (err) {
-
-    console.error("Google authentication failed");
-    console.error(err);
-
-}
 
 /* ==========================================================
    EXPRESS
@@ -75,6 +43,63 @@ app.get("/", (req, res) => {
 
 });
 
+/* ==========================================================
+   GOOGLE LOGIN
+========================================================== */
+
+app.get("/google/login", (req, res) => {
+
+    const url = oauth2Client.generateAuthUrl({
+
+        access_type: "offline",
+
+        prompt: "consent",
+
+        scope: [
+
+            "https://www.googleapis.com/auth/drive.file"
+
+        ]
+
+    });
+
+    res.redirect(url);
+
+});
+
+/* ==========================================================
+   OAUTH CALLBACK
+========================================================== */
+
+app.get("/oauth2callback", async (req, res) => {
+
+    try {
+
+        const { code } = req.query;
+
+        const { tokens } =
+            await oauth2Client.getToken(code);
+
+        oauth2Client.setCredentials(tokens);
+
+        console.log("================================");
+        console.log("GOOGLE TOKENS");
+        console.log(tokens);
+        console.log("================================");
+
+        res.send("OAuth Success!");
+
+    }
+
+    catch (err) {
+
+        console.error(err);
+
+        res.status(500).send(err.message);
+
+    }
+
+});
 /* ==========================================================
    SMART IMPORT
 ========================================================== */
@@ -158,151 +183,23 @@ ${content}
 /* ==========================================================
    CREATE SHARE SHEET
 ========================================================== */
+        /* ==========================================================
+        CREATE SHARE SHEET
+        ========================================================== */
 
-app.post("/share/create", async (req, res) => {
+        app.post("/share/create", (req, res) => {
 
-    try {
+            res.json({
 
-        const { userName } = req.body;
+                success: true,
 
-        console.log("STEP 1 - Creating Spreadsheet");
+                message: "OAuth connected successfully. Sheet creation comes next."
 
-        const spreadsheet = await sheets.spreadsheets.create({
-
-            requestBody: {
-
-                properties: {
-
-                    title: `${userName || "GradOS"} - Applications`
-
-                }
-
-            }
+            });
 
         });
 
-        console.log("STEP 1 COMPLETE");
-
-        const spreadsheetId =
-            spreadsheet.data.spreadsheetId;
-
-        console.log("Spreadsheet ID:", spreadsheetId);
-
-        console.log("STEP 2 - Moving Spreadsheet");
-
-        await drive.files.update({
-
-            fileId: spreadsheetId,
-
-            addParents:
-                process.env.GOOGLE_DRIVE_FOLDER_ID,
-
-            removeParents: "root",
-
-            fields: "id,parents"
-
-        });
-
-        console.log("STEP 2 COMPLETE");
-
-        console.log("STEP 3 - Writing Headers");
-
-        await sheets.spreadsheets.values.update({
-
-            spreadsheetId,
-
-            range: "Sheet1!A1:D1",
-
-            valueInputOption: "RAW",
-
-            requestBody: {
-
-                values: [[
-
-                    "University",
-
-                    "Program",
-
-                    "Deadline",
-
-                    "Status"
-
-                ]]
-
-            }
-
-        });
-
-        console.log("STEP 3 COMPLETE");
-
-        console.log("STEP 4 - Public Permission");
-
-        await drive.permissions.create({
-
-            fileId: spreadsheetId,
-
-            requestBody: {
-
-                type: "anyone",
-
-                role: "reader"
-
-            }
-
-        });
-
-        console.log("STEP 4 COMPLETE");
-
-        res.json({
-
-            success: true,
-
-            sheetId: spreadsheetId,
-
-            sheetUrl:
-                `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
-
-        });
-
-    }
-
-    catch (err) {
-
-        console.log("=================================");
-        console.log("GOOGLE FULL ERROR");
-        console.log("=================================");
-
-        console.log("Status:", err.code);
-        console.log("Message:", err.message);
-
-        if (err.response) {
-
-            console.log("Google Response:");
-
-            console.dir(
-                err.response.data,
-                {
-                    depth: null
-                }
-            );
-
-        } else {
-
-            console.error(err);
-
-        }
-
-        res.status(500).json({
-
-            success: false,
-
-            error: err.message
-
-        });
-
-    }
-
-});
+        
 
 /* ==========================================================
    START SERVER
