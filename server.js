@@ -177,7 +177,21 @@ app.get("/oauth2callback", async (req, res) => {
 
         console.log("Tokens saved.");
 
-        res.redirect("http://localhost/share.html");
+        res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <title>Connected</title>
+        </head>
+        <body style="font-family:Arial;text-align:center;padding-top:80px;">
+
+        <h2>✅ Google Drive Connected</h2>
+
+        <p>You can now return to the GradOS app.</p>
+
+        </body>
+        </html>
+        `);
     }
 
     catch (err) {
