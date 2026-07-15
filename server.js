@@ -74,47 +74,81 @@ app.get("/google/login", (req, res) => {
 
 });
 
-/* ==========================================================
-   OAUTH CALLBACK
-========================================================== */
+// /* ==========================================================
+//    OAUTH CALLBACK
+// ========================================================== */
 
+// app.get("/oauth2callback", async (req, res) => {
+
+//     try {
+
+//         const { code } = req.query;
+
+//         console.log("Received code:", code);
+
+//         const { tokens } = await oauth2Client.getToken(code);
+
+//         oauth2Client.setCredentials(tokens);
+
+//         console.log("================================");
+//         console.log("GOOGLE TOKENS");
+//         console.dir(tokens, { depth: null });
+//         console.log("================================");
+
+//         res.send("OAuth Success");
+
+//     }
+//     catch (err) {
+
+//         console.log("========== OAUTH ERROR ==========");
+//         console.dir(err, { depth: null });
+
+//         if (err.response?.data) {
+//             console.log("Google response:");
+//             console.dir(err.response.data, { depth: null });
+//         }
+
+//         res.status(500).json({
+//             message: err.message,
+//             response: err.response?.data || null
+//         });
+
+//     }
+// });
 app.get("/oauth2callback", async (req, res) => {
 
     try {
 
-        const { code } = req.query;
+        console.log("CODE:");
+        console.log(req.query.code);
 
-        console.log("Received code:", code);
+        console.log("REDIRECT:");
+        console.log(process.env.GOOGLE_REDIRECT_URI);
 
-        const { tokens } = await oauth2Client.getToken(code);
+        console.log("CLIENT:");
+        console.log(process.env.GOOGLE_CLIENT_ID);
 
-        oauth2Client.setCredentials(tokens);
-
-        console.log("================================");
-        console.log("GOOGLE TOKENS");
-        console.dir(tokens, { depth: null });
-        console.log("================================");
-
-        res.send("OAuth Success");
-
-    }
-    catch (err) {
-
-        console.log("========== OAUTH ERROR ==========");
-        console.dir(err, { depth: null });
-
-        if (err.response?.data) {
-            console.log("Google response:");
-            console.dir(err.response.data, { depth: null });
-        }
-
-        res.status(500).json({
-            message: err.message,
-            response: err.response?.data || null
+        const result = await oauth2Client.getToken({
+            code: req.query.code,
+            redirect_uri: process.env.GOOGLE_REDIRECT_URI
         });
 
+        console.dir(result, { depth: null });
+
+        res.send("SUCCESS");
+
+    } catch (err) {
+
+        console.log("FULL ERROR");
+        console.dir(err, { depth: null });
+
+        res.json(err.response?.data || err);
+
     }
+
 });
+console.log(oauth2Client._clientId);
+console.log(oauth2Client.redirectUri);
 /* ==========================================================
    SMART IMPORT
 ========================================================== */
