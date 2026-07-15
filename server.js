@@ -425,8 +425,34 @@ app.post("/share/create", async (req, res) => {
     }
 
 });
+app.get("/share/test", async (req, res) => {
 
-        
+    try {
+
+        const uid = req.query.uid;
+
+        const response = await fetch(
+            `http://localhost:${PORT}/share/create`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ uid })
+            }
+        );
+
+        const data = await response.json();
+
+        res.json(data);
+
+    } catch (err) {
+
+        res.status(500).json(err);
+
+    }
+
+});
 
 /* ==========================================================
    START SERVER
