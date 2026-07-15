@@ -276,11 +276,11 @@ ${content}
 
 });
 
-app.post("/share/create", async (req, res) => {
+app.get("/share/create", async (req, res) => {
 
     try {
 
-        const { uid } = req.body;
+        const uid = req.query.uid;
 
         if (!uid) {
 
