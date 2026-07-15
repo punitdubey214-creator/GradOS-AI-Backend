@@ -98,16 +98,22 @@ app.get("/oauth2callback", async (req, res) => {
         res.send("OAuth Success");
 
     }
-
     catch (err) {
 
-        console.log("========== GOOGLE OAUTH ERROR ==========");
+        console.log("========== OAUTH ERROR ==========");
         console.dir(err, { depth: null });
 
-        res.status(500).send(err.message);
+        if (err.response?.data) {
+            console.log("Google response:");
+            console.dir(err.response.data, { depth: null });
+        }
+
+        res.status(500).json({
+            message: err.message,
+            response: err.response?.data || null
+        });
 
     }
-
 });
 /* ==========================================================
    SMART IMPORT
