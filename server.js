@@ -544,6 +544,9 @@ app.get("/share/create", async (req, res) => {
    SYNC APPLICATIONS
 ========================================================== */
 app.get("/share/sync", async (req, res) => {
+    console.log("========== SHARE SYNC HIT ==========");
+    console.log(req.query.uid);
+    console.log(req.query.applications);
 
     try {
 
