@@ -396,7 +396,7 @@ app.get("/share/create", async (req, res) => {
 
         }
 
-        const data = doc.data();
+        
 
         const data = doc.data();
 
@@ -581,6 +581,12 @@ app.get("/share/sync", async (req, res) => {
         }
 
         const data = doc.data();
+        if (!data.spreadsheetId) {
+            return res.status(400).json({
+                success: false,
+                error: "Spreadsheet not created yet."
+            });
+        }
 
         oauth2Client.setCredentials({
 
