@@ -337,15 +337,11 @@ app.get("/share/status", async (req, res) => {
 
         const data = doc.data();
 
-
         res.json({
-
             connected: !!data.refreshToken,
-
             spreadsheet: !!data.spreadsheetId,
-
+            spreadsheetId: data.spreadsheetId || "",
             spreadsheetUrl: data.spreadsheetUrl || ""
-
         });
 
     }
