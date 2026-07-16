@@ -399,12 +399,12 @@ app.get("/share/create", async (req, res) => {
         
 
         const data = doc.data();
-
         oauth2Client.setCredentials({
-
             refresh_token: data.refreshToken
-
         });
+
+        // Force Google to exchange the refresh token for a fresh access token
+        await oauth2Client.getAccessToken();
         // User already has a spreadsheet
 
         if (data.spreadsheetId) {
@@ -482,31 +482,35 @@ app.get("/share/create", async (req, res) => {
 
         // Make sheet public
 
-        await drive.permissions.create({
+        try {
 
-            fileId: spreadsheetId,
+            await drive.permissions.create({
+                fileId: spreadsheetId,
+                requestBody: {
+                    type: "anyone",
+                    role: "reader"
+                }
+            });
 
-            requestBody: {
+        } catch (e) {
 
-                type: "anyone",
+            console.error("Permission error:", e.message);
 
-                role: "reader"
+        }
 
-            }
-
-        });
-
-        // Save sheet info in Firebase
+    // Save sheet info in Firebase
         console.log("Saving spreadsheet to Firestore...");
+
+        const spreadsheetUrl =
+            `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
 
         await db.collection("sheets")
         .doc(uid)
         .set({
 
-            spreadsheetId,
-
-            spreadsheetUrl:
-                `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
+            spreadsheetId: spreadsheetId,
+            spreadsheetUrl: spreadsheetUrl,
+            updatedAt: new Date()
 
         }, {
 
@@ -519,31 +523,27 @@ app.get("/share/create", async (req, res) => {
         res.json({
 
             success: true,
-
-            spreadsheetId,
-
-            spreadsheetUrl:
-                `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
+            alreadyExists: false,
+            spreadsheetId: spreadsheetId,
+            spreadsheetUrl: spreadsheetUrl
 
         });
 
-    }
+        } catch (err) {
 
-    catch (err) {
+            console.error(err);
 
-        console.error(err);
+            res.status(500).json({
 
-        res.status(500).json({
+                success: false,
+                error: err.message
 
-            success: false,
+            });
 
-            error: err.message
+        }
 
         });
 
-    }
-
-});
 /* ==========================================================
    SYNC APPLICATIONS
 ========================================================== */
