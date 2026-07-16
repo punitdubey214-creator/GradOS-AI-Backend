@@ -618,11 +618,22 @@ await oauth2Client.getAccessToken();
         await oauth2Client.getAccessToken();
 
         const sheets = google.sheets({
-
             version: "v4",
             auth: oauth2Client
-
         });
+
+        // Get spreadsheet metadata
+        const spreadsheet = await sheets.spreadsheets.get({
+            spreadsheetId: data.spreadsheetId
+        });
+
+        console.log("========== SPREADSHEET ==========");
+        console.log(JSON.stringify(spreadsheet.data, null, 2));
+
+        const sheetName =
+            spreadsheet.data.sheets[0].properties.title;
+
+        console.log("Using sheet:", sheetName);
 
         const values = [[
             "University",
@@ -630,7 +641,6 @@ await oauth2Client.getAccessToken();
             "Deadline",
             "Status"
         ]];
-
         for (const app of applications) {
 
             values.push([
@@ -648,7 +658,7 @@ await oauth2Client.getAccessToken();
             console.log("CLEARING SHEET...");
             await sheets.spreadsheets.values.clear({
                 spreadsheetId: data.spreadsheetId,
-                range: "Sheet1!A:D"
+                range: `${sheetName}!A:D`
             });
             console.log("CLEAR SUCCESS");
 
@@ -666,7 +676,7 @@ await oauth2Client.getAccessToken();
             console.log("UPDATING SHEET...");
             await sheets.spreadsheets.values.update({
                 spreadsheetId: data.spreadsheetId,
-                range: "Sheet1!A1",
+                range: `${sheetName}!A1`,
                 valueInputOption: "RAW",
                 requestBody: {
                     values
@@ -677,7 +687,16 @@ await oauth2Client.getAccessToken();
         } catch (err) {
 
             console.error("UPDATE FAILED");
-            console.error(err);
+            console.error("FULL ERROR");
+            console.dir(err, { depth: null });
+
+            if (err.response) {
+                console.dir(err.response.data, { depth: null });
+            }
+
+            if (err.errors) {
+                console.dir(err.errors, { depth: null });
+            }
 
             throw err;
 
