@@ -611,9 +611,10 @@ app.get("/share/sync", async (req, res) => {
         }
 
         oauth2Client.setCredentials({
-            refresh_token: data.refreshToken
+        refresh_token: data.refreshToken
         });
 
+await oauth2Client.getAccessToken();
         // Refresh access token
         await oauth2Client.getAccessToken();
 
@@ -668,11 +669,13 @@ app.get("/share/sync", async (req, res) => {
         console.log("Spreadsheet:", data.spreadsheetId);
         console.log("Rows:", applications.length);
 
-        res.json({
+        console.log("========== SYNC SUCCESS ==========");
+        console.log("Spreadsheet:", data.spreadsheetId);
+        console.log("Rows:", applications.length);
 
+        res.json({
             success: true,
             rows: applications.length
-
         });
 
     }
