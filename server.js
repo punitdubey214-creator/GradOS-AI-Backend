@@ -547,52 +547,75 @@ app.get("/share/create", async (req, res) => {
 /* ==========================================================
    SYNC APPLICATIONS
 ========================================================== */
-
 app.get("/share/sync", async (req, res) => {
 
     try {
 
         const uid = req.query.uid;
 
-        const applications = JSON.parse(req.query.applications);
-
         if (!uid) {
 
             return res.status(400).json({
-
                 success: false,
                 error: "Missing UID"
-
             });
 
         }
 
-        const doc = await db.collection("sheets").doc(uid).get();
+        let applications = [];
+
+        try {
+
+            applications = JSON.parse(req.query.applications || "[]");
+
+        } catch {
+
+            return res.status(400).json({
+                success: false,
+                error: "Invalid applications data"
+            });
+
+        }
+
+        const doc = await db.collection("sheets")
+            .doc(uid)
+            .get();
 
         if (!doc.exists) {
 
             return res.status(404).json({
-
                 success: false,
                 error: "Google account not connected."
-
             });
 
         }
 
         const data = doc.data();
+
+        if (!data.refreshToken) {
+
+            return res.status(400).json({
+                success: false,
+                error: "Missing refresh token."
+            });
+
+        }
+
         if (!data.spreadsheetId) {
+
             return res.status(400).json({
                 success: false,
                 error: "Spreadsheet not created yet."
             });
+
         }
 
         oauth2Client.setCredentials({
-
             refresh_token: data.refreshToken
-
         });
+
+        // Refresh access token
+        await oauth2Client.getAccessToken();
 
         const sheets = google.sheets({
 
@@ -601,60 +624,53 @@ app.get("/share/sync", async (req, res) => {
 
         });
 
-        const values = [
-
-            [
-
-                "University",
-                "Program",
-                "Deadline",
-                "Status"
-
-            ]
-
-        ];
+        const values = [[
+            "University",
+            "Program",
+            "Deadline",
+            "Status"
+        ]];
 
         for (const app of applications) {
 
             values.push([
-
                 app.university || "",
                 app.program || "",
                 app.deadline || "",
                 app.status || ""
-
             ]);
 
         }
 
+        // Clear existing data
         await sheets.spreadsheets.values.clear({
 
             spreadsheetId: data.spreadsheetId,
-
             range: "Sheet1!A:D"
 
         });
 
+        // Write new data
         await sheets.spreadsheets.values.update({
 
             spreadsheetId: data.spreadsheetId,
-
             range: "Sheet1!A1",
 
             valueInputOption: "RAW",
 
             requestBody: {
-
                 values
-
             }
 
         });
 
+        console.log("SYNC SUCCESS");
+        console.log("Spreadsheet:", data.spreadsheetId);
+        console.log("Rows:", applications.length);
+
         res.json({
 
             success: true,
-
             rows: applications.length
 
         });
@@ -663,12 +679,12 @@ app.get("/share/sync", async (req, res) => {
 
     catch (err) {
 
+        console.error("SYNC ERROR");
         console.error(err);
 
         res.status(500).json({
 
             success: false,
-
             error: err.message
 
         });
@@ -676,7 +692,6 @@ app.get("/share/sync", async (req, res) => {
     }
 
 });
-
 /* ==========================================================
    START SERVER
 ========================================================== */
