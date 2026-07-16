@@ -643,26 +643,45 @@ await oauth2Client.getAccessToken();
         }
 
         // Clear existing data
-        await sheets.spreadsheets.values.clear({
+        try {
 
-            spreadsheetId: data.spreadsheetId,
-            range: "Sheet1!A:D"
+            console.log("CLEARING SHEET...");
+            await sheets.spreadsheets.values.clear({
+                spreadsheetId: data.spreadsheetId,
+                range: "Sheet1!A:D"
+            });
+            console.log("CLEAR SUCCESS");
 
-        });
+        } catch (err) {
 
-        // Write new data
-        await sheets.spreadsheets.values.update({
+            console.error("CLEAR FAILED");
+            console.error(err);
 
-            spreadsheetId: data.spreadsheetId,
-            range: "Sheet1!A1",
+            throw err;
 
-            valueInputOption: "RAW",
+        }
 
-            requestBody: {
-                values
-            }
+        try {
 
-        });
+            console.log("UPDATING SHEET...");
+            await sheets.spreadsheets.values.update({
+                spreadsheetId: data.spreadsheetId,
+                range: "Sheet1!A1",
+                valueInputOption: "RAW",
+                requestBody: {
+                    values
+                }
+            });
+            console.log("UPDATE SUCCESS");
+
+        } catch (err) {
+
+            console.error("UPDATE FAILED");
+            console.error(err);
+
+            throw err;
+
+        }
 
         console.log("SYNC SUCCESS");
         console.log("Spreadsheet:", data.spreadsheetId);
