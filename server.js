@@ -59,7 +59,12 @@ app.use(express.json());
 const ai = new GoogleGenAI({
     apiKey: process.env.GEMINI_API_KEY
 });
-
+console.log("========== GEMINI ==========");
+console.log(
+    process.env.GEMINI_API_KEY
+        ? "API KEY FOUND"
+        : "API KEY MISSING"
+);
 app.get("/", (req, res) => {
 
     res.send("GradOS AI Backend Running 🚀");
@@ -206,18 +211,27 @@ app.get("/oauth2callback", async (req, res) => {
 
     catch (err) {
 
-        console.error(err);
+        console.log("========== OAUTH ERROR ==========");
+        console.dir(err, { depth: null });
+
+        if (err.response?.data) {
+
+            console.log("Gemini Response:");
+            console.dir(err.response.data, { depth: null });
+
+        }
 
         res.status(500).json({
 
             success: false,
 
-            error: err.message
+            error: err.message,
+
+            details: err.response?.data || null
 
         });
 
     }
-
 });
 /* ==========================================================
    SMART IMPORT
@@ -288,11 +302,24 @@ ${content}
 
     catch (err) {
 
-        console.error(err);
+        console.log("========== GEMINI ERROR ==========");
+        console.dir(err,{depth:null});
+
+        if(err.response?.data){
+
+            console.log("Gemini Response:");
+            console.dir(err.response.data,{depth:null});
+
+        }
 
         res.status(500).json({
-            success: false,
-            error: err.message
+
+            success:false,
+
+            error:err.message,
+
+            details:err.response?.data || null
+
         });
 
     }
@@ -527,7 +554,14 @@ app.get("/share/create", async (req, res) => {
 
         } catch (err) {
 
-            console.error(err);
+            console.log("========== SHEET ERROR ==========");
+            console.dir(err,{depth:null});
+
+            if(err.response){
+
+                console.dir(err.response.data,{depth:null});
+
+            }
 
             res.status(500).json({
 
@@ -613,7 +647,6 @@ app.get("/share/sync", async (req, res) => {
         refresh_token: data.refreshToken
         });
 
-await oauth2Client.getAccessToken();
         // Refresh access token
         await oauth2Client.getAccessToken();
 
